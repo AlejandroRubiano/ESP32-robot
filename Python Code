@@ -11,6 +11,9 @@ motor2_b = Pin(26, Pin.OUT)  # IN4 - Motor 2 atrás
 trig = Pin(23, Pin.OUT)
 echo = Pin(22, Pin.IN)
 
+# Configuración de los pines para los LEDs
+leds = [Pin(5, Pin.OUT), Pin(18, Pin.OUT), Pin(19, Pin.OUT), Pin(21, Pin.OUT)]
+
 # Función para medir la distancia con el sensor ultrasónico
 def medir_distancia():
     # Generar un pulso de 10 microsegundos en el pin Trig
@@ -62,6 +65,13 @@ def detenerse():
     motor2_a.value(0)
     motor2_b.value(0)
 
+# Función para encender los LEDs en onda
+def leds_en_onda():
+    for led in leds:
+        led.value(1)  # Enciende el LED
+        time.sleep(0.1)  # Espera 100ms
+        led.value(0)  # Apaga el LED
+
 # Lógica principal para el control del robot
 while True:
     distancia = medir_distancia()
@@ -77,6 +87,8 @@ while True:
         time.sleep(0.5)
     else:  # Si no hay obstáculos cercanos
         mover_adelante()
+
+    leds_en_onda()  # Ejecuta la función de los LEDs
 
     time.sleep(0.1)  # Pequeña pausa para evitar lecturas excesivas
 
