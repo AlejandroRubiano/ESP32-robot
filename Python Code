@@ -1,37 +1,40 @@
 from machine import Pin
 import time
 
+# Configuración del pulsador
+boton = Pin(4, Pin.IN, Pin.PULL_UP)  # Pulsador con resistencia pull-up interna
+
 # Configuración de los pines para el control del puente H (L298N)
 motor1_a = Pin(12, Pin.OUT)  # IN1 - Motor 1 adelante
 motor1_b = Pin(14, Pin.OUT)  # IN2 - Motor 1 atrás
 motor2_a = Pin(27, Pin.OUT)  # IN3 - Motor 2 adelante
 motor2_b = Pin(26, Pin.OUT)  # IN4 - Motor 2 atrás
 
-# Configuración de los pines para el sensor ultrasónico HC-SR05
+# Configuración de los pines para el sensor ultrasónico HC-SR04
 trig = Pin(23, Pin.OUT)
 echo = Pin(22, Pin.IN)
 
-# Configuración de los pines para los LEDs
+# Configuración de los LEDs
 leds = [Pin(5, Pin.OUT), Pin(18, Pin.OUT), Pin(19, Pin.OUT), Pin(21, Pin.OUT)]
+
+# Variable para almacenar la dirección del motor
+direccion = 0  # 0: adelante, 1: atrás
 
 # Función para medir la distancia con el sensor ultrasónico
 def medir_distancia():
-    # Generar un pulso de 10 microsegundos en el pin Trig
     trig.value(0)
     time.sleep_us(2)
     trig.value(1)
     time.sleep_us(10)
     trig.value(0)
 
-    # Medir el tiempo del pulso en el pin Echo
     while echo.value() == 0:
         inicio = time.ticks_us()
     while echo.value() == 1:
         fin = time.ticks_us()
 
-    # Calcular la distancia en centímetros
     duracion = time.ticks_diff(fin, inicio)
-    distancia = (duracion * 0.0343) / 2  # Fórmula para convertir el tiempo a distancia
+    distancia = (duracion * 0.0343) / 2
     return distancia
 
 # Funciones para controlar el movimiento del robot
@@ -65,19 +68,32 @@ def detenerse():
     motor2_a.value(0)
     motor2_b.value(0)
 
+# Función para cambiar la dirección del motor con el botón
+def cambiar_direccion(pin):
+    global direccion
+    direccion = not direccion  # Alternar entre adelante y atrás
+    if direccion:
+        mover_atras()
+    else:
+        mover_adelante()
+    print("Dirección cambiada:", "Atrás" if direccion else "Adelante")
+
+# Asignar interrupción al pulsador
+boton.irq(trigger=Pin.IRQ_FALLING, handler=cambiar_direccion)
+
 # Función para encender los LEDs en onda
 def leds_en_onda():
     for led in leds:
-        led.value(1)  # Enciende el LED
-        time.sleep(0.1)  # Espera 100ms
-        led.value(0)  # Apaga el LED
+        led.value(1)
+        time.sleep(0.1)
+        led.value(0)
 
 # Lógica principal para el control del robot
 while True:
     distancia = medir_distancia()
     print("Distancia: ", distancia, "cm")
 
-    if distancia < 20:  # Si un obstáculo está a menos de 20 cm
+    if distancia < 20:
         print("Obstáculo detectado. Cambiando dirección.")
         detenerse()
         time.sleep(0.5)
@@ -85,10 +101,12 @@ while True:
         time.sleep(0.5)
         girar_derecha()
         time.sleep(0.5)
-    else:  # Si no hay obstáculos cercanos
-        mover_adelante()
+    else:
+        if direccion == 0:
+            mover_adelante()
+        else:
+            mover_atras()
 
-    leds_en_onda()  # Ejecuta la función de los LEDs
-
-    time.sleep(0.1)  # Pequeña pausa para evitar lecturas excesivas
+    leds_en_onda()
+    time.sleep(0.1)
 
