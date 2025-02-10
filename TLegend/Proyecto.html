@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proyecto Final - Programación Aplicada</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        header {
+            background-color: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        nav {
+            background-color: #34495e;
+            padding: 10px;
+            text-align: center;
+        }
+        nav a {
+            color: white;
+            text-decoration: none;
+            margin: 10px;
+            font-size: 18px;
+        }
+        nav a:hover {
+            text-decoration: underline;
+        }
+        .container {
+            width: 80%;
+            margin: auto;
+            padding: 20px;
+            background: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            border-bottom: 2px solid #2c3e50;
+            padding-bottom: 5px;
+            color: #2c3e50;
+        }
+        pre {
+            background: #ecf0f1;
+            padding: 15px;
+            border-left: 5px solid #2c3e50;
+            overflow-x: auto;
+        }
+        .cost-box {
+            background: #dff0d8;
+            padding: 15px;
+            border-left: 5px solid #27ae60;
+            font-size: 18px;
+            margin-top: 20px;
+        }
+        .footer {
+            text-align: center;
+            padding: 15px;
+            background: #2c3e50;
+            color: white;
+            margin-top: 20px;
+        }
+        .robot-img {
+            width: 100%;
+            max-width: 600px;
+            display: block;
+            margin: 10px auto;
+            border: 2px solid #2c3e50;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>PROYECTO FINAL - PROGRAMACIÓN APLICADA</h1>
+    <p>Alejandro Rubiano Alarcón - 20212005159</p>
+    <p>Universidad Distrital Francisco José de Caldas | Ingeniería Electrónica</p>
+</header>
+
+<nav>
+    <a href="#introduccion">Introducción</a>
+    <a href="#problema">Problema</a>
+    <a href="#objetivos">Objetivos</a>
+    <a href="#componentes">Componentes</a>
+    <a href="#codigo">Código</a>
+    <a href="#construccion">Construcción</a>
+    <a href="#costo">Costo</a>
+    <a href="#conclusiones">Conclusiones</a>
+</nav>
+
+<div class="container">
+
+    <section id="introduccion">
+        <h2>1. Introducción</h2>
+        <p>Este proyecto consiste en desarrollar un robot utilizando un microcontrolador ESP32 programado en MicroPython. El robot se inspirará en el Boom Bot de Valorant, desplazándose de manera autónoma para evitar obstáculos.</p>
+    </section>
+
+    <section id="problema">
+        <h2>2. Descripción del problema</h2>
+        <p>Se busca desarrollar un robot autónomo capaz de detectar y evitar obstáculos, aplicable en automatización, exploración de áreas peligrosas y robótica interactiva.</p>
+    </section>
+
+    <section id="objetivos">
+        <h2>3. Objetivos</h2>
+        <ul>
+            <li>Desarrollar un robot móvil con ESP32.</li>
+            <li>Implementar sensores ultrasónicos para detección de obstáculos.</li>
+            <li>Configurar motores DC y sistema de control.</li>
+            <li>Simular la función de un "Boom Bot" con detección de obstáculos.</li>
+        </ul>
+    </section>
+
+    <section id="componentes">
+        <h2>4. Componentes</h2>
+        <ul>
+            <li><strong>ESP32:</strong> Microcontrolador principal.</li>
+            <li><strong>Motores DC:</strong> Para movimiento.</li>
+            <li><strong>Driver L298N:</strong> Control de motores.</li>
+            <li><strong>Sensor ultrasónico HC-SR04:</strong> Detección de obstáculos.</li>
+            <li><strong>Batería recargable:</strong> Fuente de energía.</li>
+            <li><strong>LEDs y botones:</strong> Indicadores visuales y control manual.</li>
+        </ul>
+    </section>
+
+    <section id="codigo">
+        <h2>5. Código Fuente</h2>
+        <pre>
+            from machine import Pin
+            import time
+            
+            # Configuración del pulsador
+            boton = Pin(4, Pin.IN, Pin.PULL_UP)  # Pulsador con resistencia pull-up interna
+            
+            # Configuración de los pines para el control del puente H (L298N)
+            motor1_a = Pin(12, Pin.OUT)  # IN1 - Motor 1 adelante
+            motor1_b = Pin(14, Pin.OUT)  # IN2 - Motor 1 atrás
+            motor2_a = Pin(27, Pin.OUT)  # IN3 - Motor 2 adelante
+            motor2_b = Pin(26, Pin.OUT)  # IN4 - Motor 2 atrás
+            
+            # Configuración de los pines para el sensor ultrasónico HC-SR04
+            trig = Pin(23, Pin.OUT)
+            echo = Pin(22, Pin.IN)
+            
+            # Configuración de los LEDs
+            leds = [Pin(5, Pin.OUT), Pin(18, Pin.OUT), Pin(19, Pin.OUT), Pin(21, Pin.OUT)]
+            
+            # Variable para almacenar la dirección del motor
+            direccion = 0  # 0: adelante, 1: atrás
+            
+            # Función para medir la distancia con el sensor ultrasónico
+            def medir_distancia():
+                trig.value(0)
+                time.sleep_us(2)
+                trig.value(1)
+                time.sleep_us(10)
+                trig.value(0)
+            
+                while echo.value() == 0:
+                    inicio = time.ticks_us()
+                while echo.value() == 1:
+                    fin = time.ticks_us()
+            
+                duracion = time.ticks_diff(fin, inicio)
+                distancia = (duracion * 0.0343) / 2
+                return distancia
+            
+            # Funciones para controlar el movimiento del robot
+            def mover_adelante():
+                motor1_a.value(1)
+                motor1_b.value(0)
+                motor2_a.value(1)
+                motor2_b.value(0)
+            
+            def mover_atras():
+                motor1_a.value(0)
+                motor1_b.value(1)
+                motor2_a.value(0)
+                motor2_b.value(1)
+            
+            def girar_izquierda():
+                motor1_a.value(0)
+                motor1_b.value(1)
+                motor2_a.value(1)
+                motor2_b.value(0)
+            
+            def girar_derecha():
+                motor1_a.value(1)
+                motor1_b.value(0)
+                motor2_a.value(0)
+                motor2_b.value(1)
+            
+            def detenerse():
+                motor1_a.value(0)
+                motor1_b.value(0)
+                motor2_a.value(0)
+                motor2_b.value(0)
+            
+            # Función para cambiar la dirección del motor con el botón
+            def cambiar_direccion(pin):
+                global direccion
+                direccion = not direccion  # Alternar entre adelante y atrás
+                if direccion:
+                    mover_atras()
+                else:
+                    mover_adelante()
+                print("Dirección cambiada:", "Atrás" if direccion else "Adelante")
+            
+            # Asignar interrupción al pulsador
+            boton.irq(trigger=Pin.IRQ_FALLING, handler=cambiar_direccion)
+            
+            # Función para encender los LEDs en onda
+            def leds_en_onda():
+                for led in leds:
+                    led.value(1)
+                    time.sleep(0.1)
+                    led.value(0)
+            
+            # Lógica principal para el control del robot
+            while True:
+                distancia = medir_distancia()
+                print("Distancia: ", distancia, "cm")
+            
+                if distancia < 20:
+                    print("Obstáculo detectado. Cambiando dirección.")
+                    detenerse()
+                    time.sleep(0.5)
+                    mover_atras()
+                    time.sleep(0.5)
+                    girar_derecha()
+                    time.sleep(0.5)
+                else:
+                    if direccion == 0:
+                        mover_adelante()
+                    else:
+                        mover_atras()
+            
+                leds_en_onda()
+                time.sleep(0.1)
+            
+        </pre>
+    </section>
+
+    <section id="construccion">
+        <h2>6. Proceso de Construcción</h2>
+        <p>La construcción del robot incluyó el ensamblaje de componentes en una estructura sólida y la correcta conexión de todos los dispositivos electrónicos.</p>
+
+        <h3>Vista superior del robot</h3>
+        <img class="IMG_2164.jpeg" src="IMG_2164.jpeg" width="600" height="500" >
+
+        <h3>Vista lateral del robot</h3>
+        <img class="IMG_2165.jpeg" src="IMG_2165.jpeg" width="600" height="500" >
+
+        <h3>Vista frontal del robot</h3>
+        <img class="IMG_2166.jpeg" src="IMG_2166.jpeg" width="600" height="500" >
+    </section>
+
+    <section id="costo">
+        <h2>7. Costo Total</h2>
+        <div class="cost-box">
+            <p><strong>Costo materiales:</strong> 122,500 COP</p>
+            <p><strong>Costo programación (4h a 35,000 COP/h):</strong> 140,000 COP</p>
+            <p><strong>Total:</strong> 262,500 COP</p>
+        </div>
+    </section>
+
+    <section id="conclusiones">
+        <h2>8. Conclusiones</h2>
+        <p>El proyecto permitió aplicar conocimientos en robótica y programación, logrando desarrollar un robot funcional con detección de obstáculos.</p>
+        <p><a href="https://github.com/AlejandroRubiano/ESP32-robot" target="_blank">Repositorio en GitHub</a></p>
+    </section>
+
+</div>
+
+<div class="footer">
+    <p>&copy; 2025 Alejandro Rubiano | Programación Aplicada</p>
+</div>
+
+</body>
+</html>
